@@ -1,5 +1,4 @@
 PROJROOT = .
-STLKROOT = \Embed\Stm32\Tools
 PREFIX   = arm-none-eabi-
 CC       = $(PREFIX)gcc
 LD       = $(PREFIX)ld
