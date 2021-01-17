@@ -279,7 +279,8 @@ class STM32_USB_DEV:
 
         # set the active configuration. With no arguments, the first
         # configuration will be the active one
-        self.dev.set_configuration()
+        if sys.platform == "win32":
+            self.dev.set_configuration()
 
         # get an endpoint instance
         self.cfg  = self.dev.get_active_configuration()
