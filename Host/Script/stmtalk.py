@@ -6,6 +6,7 @@ import usb.core
 import usb.util
 import string
 import socket
+import binascii
 
 if os.name == 'nt':
     # Windows
@@ -767,7 +768,6 @@ def main():
             tmp = stm_comm.stm_usb.read(STM32_USB_DEV.MAX_PKT)
             tmp = stm_comm.stm_usb.read(STM32_USB_DEV.MAX_PKT)
             if len(tmp)  !=  STM32_USB_DEV.MAX_PKT:
-                print (tmp)
                 raise SystemExit ("ERR: bulk read status failed !")
             elif tmp[0] == 0xFF or (tmp[0] == 0x00 and tmp[1] == 0x00):
                 raise SystemExit ("ERR: target status is not ready, no flash detected !")
@@ -782,7 +782,6 @@ def main():
 
     if flags_eval (options, "r | b | v"):
         idx  = 0
-        fpi  = open(sys.argv[1], 'rb')
         tlen = (length + 0xFF) & 0xFFFFFF00
         while (tlen) :
             if (tlen > 0x10000) :
@@ -808,6 +807,7 @@ def main():
                             break
 
                 elif 'v' in options : # Verify
+                    fpi  = open(sys.argv[1], 'rb')
                     for idx in range(rlen):
                         cb = fpi.read(1)
                         if len(cb) == 0:
@@ -820,6 +820,7 @@ def main():
                             print ("%08X: %02X(Flash) %02X(File)" % (address + idx, resp[idx], cb))
                             tlen = rlen
                             break
+                    fpi.close ()
                 else :  # Read
                     for idx in range(rlen):
                         if (idx & 0x0F) == 0x00:
@@ -830,8 +831,6 @@ def main():
 
             address += rlen
             tlen    -= rlen
-
-        fpi.close ()
 
         if 'b' in options:
             if idx + 1 == rlen:
@@ -860,7 +859,7 @@ def main():
                 buf2 = fpi.read (blksize)
                 if len(buf2) < blksize:
                     buf2 = buf2 + b'\xff' * (blksize - len(buf2))
-                sum2.append (crc32 (buf2))
+                sum2.append (binascii.crc32 (buf2))
             fpi.close()
 
             # Calculate check sum in flash
@@ -894,13 +893,15 @@ def main():
                     else :
                         result = "Different"
                     print ("Block %3d at 0x%08X (FLASH CRC:0x%08X, FILE CRC:0x%08X) %s" % (idx, address + idx * blksize, sum1[idx], sum2[idx], result))
-
+        print('')
+        sys.stdout.flush()
 
     if 'e' in options:
-        print('Erasing')
+        print('Erasing...')
         psize = address
         for loop in range ((size + blksize - 1) // blksize):
-            if (blk[(psize - address) >> 16] == 0) :
+            val = blk[(psize - address) >> 16]
+            if (val == 0) or (val == 2 and ('p' not in options)):
                 print("Erasing   block   0x%08X - " % psize, end = '')
                 if stm_comm.short_cmd  (STM32_COMM.CMD_ERASE_BLOCK, 0,  psize, 0) :
                     raise SystemExit ("ERR: failed to erase flash !")
@@ -909,17 +910,20 @@ def main():
                     raise SystemExit ("ERR: failed to wait for erasing done !")
 
                 print("DONE")
-            elif blk[(psize - address) >> 16] == 1 :
+            elif val == 1 :
                 print("Empty     block   0x%08X - SKIP" % psize)
             else :
                 print("Identical block   0x%08X - SKIP" % psize)
 
             psize += blksize
+            sys.stdout.flush()
+
         print('')
+        sys.stdout.flush()
 
 
     if 'p' in options:
-        print('Programming')
+        print('Programming...')
         flag = 0
         if 'm' in options:
             # find available slot to update module
@@ -955,7 +959,11 @@ def main():
                     print ("DONE")
 
             psize += pagesize
+            sys.stdout.flush()
+
         fpi.close ()
+        print('')
+        sys.stdout.flush()
 
 
     # Last packet to signal the end

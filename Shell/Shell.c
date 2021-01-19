@@ -241,7 +241,7 @@ BYTE GetUsbCommand(char *cmdline)
   }
 
   if (result) {
-    if (cmdline[0] != '@' && cmdline[0] != '!')  printf("%s\n", cmdline);
+    if (cmdline[0] != '!')  printf("%s\n", cmdline);
   }
 
   return result;
@@ -356,11 +356,11 @@ void ParseCommand (char *str)
     str = gCmdLine;
 
   // ignore while space
+  printprompt = 1;
   if (*str == '@' || *str == '!') {
     *str = ' ';
-    printprompt = 0;
-  } else {
-    printprompt = 1;
+    if (*str == '!')
+      printprompt = 0;
   }
 
   str = skipchar (str, ' ');
