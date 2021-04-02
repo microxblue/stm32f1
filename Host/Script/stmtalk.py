@@ -705,7 +705,7 @@ def main():
 
 
         if (address + size) < STM32_COMM.TARGET_CFGS[target]['base'] or (address + size) > STM32_COMM.TARGET_CFGS[target]['limit'] :
-            raise SystemExit ("ERR: Length is too big to fit into the %s range!\n", argv[3])
+            raise SystemExit ("ERR: Length is too big to fit into the %s range!\n", sys.argv[3])
 
     stm_comm = STM32_COMM (usbaddr, pid)
     stm_comm.drain ()
@@ -808,6 +808,7 @@ def main():
 
                 elif 'v' in options : # Verify
                     fpi  = open(sys.argv[1], 'rb')
+                    fpi.seek(address)
                     for idx in range(rlen):
                         cb = fpi.read(1)
                         if len(cb) == 0:
@@ -877,12 +878,14 @@ def main():
 
             blk = bytearray(blknum)
             for idx in range (blknum):
+                blk[idx] = 0
+
+                if (sum1[idx] == 0xDEAB7E4E):
+                    blk[idx] |= 1   # Empty
+
                 if  (sum1[idx] == sum2[idx]):
-                    blk[idx] = 2   # Same
-                elif (sum1[idx] == 0xDEAB7E4E):
-                    blk[idx] = 1   # Empty
-                else:
-                    blk[idx] = 0
+                    blk[idx] |= 2   # Same
+
 
             if 'c' in options:
                 for idx in range (blknum):
@@ -890,6 +893,8 @@ def main():
                         result = "Identical"
                     elif (blk[idx] == 1) :
                         result = "Empty"
+                    elif (blk[idx] == 3) :
+                        result = "Empty & Identical"
                     else :
                         result = "Different"
                     print ("Block %3d at 0x%08X (FLASH CRC:0x%08X, FILE CRC:0x%08X) %s" % (idx, address + idx * blksize, sum1[idx], sum2[idx], result))
@@ -901,7 +906,11 @@ def main():
         psize = address
         for loop in range ((size + blksize - 1) // blksize):
             val = blk[(psize - address) >> 16]
-            if (val == 0) or (val == 2 and ('p' not in options)):
+            if val & 1 :
+                print("Empty     block   0x%08X - SKIP" % psize)
+            elif (val & 2) and ('p' in options):
+                print("Identical block   0x%08X - SKIP" % psize)
+            else:
                 print("Erasing   block   0x%08X - " % psize, end = '')
                 if stm_comm.short_cmd  (STM32_COMM.CMD_ERASE_BLOCK, 0,  psize, 0) :
                     raise SystemExit ("ERR: failed to erase flash !")
@@ -910,11 +919,6 @@ def main():
                     raise SystemExit ("ERR: failed to wait for erasing done !")
 
                 print("DONE")
-            elif val == 1 :
-                print("Empty     block   0x%08X - SKIP" % psize)
-            else :
-                print("Identical block   0x%08X - SKIP" % psize)
-
             psize += blksize
             sys.stdout.flush()
 
@@ -943,7 +947,7 @@ def main():
             if len(tmp) < pagesize:
                 tmp = tmp + b'\xff' * (pagesize - len(tmp))
 
-            if (blk[(psize - address)>>16] == 2):
+            if (blk[(psize - address)>>16] & 2):
                 if (psize & (blksize - 1)) == 0:
                     print("Identical block   0x%08X - SKIP" % psize)
                 if stm_comm.short_cmd  (STM32_COMM.CMD_SKIP_PAGE, 0, pagesize, 0):
@@ -952,7 +956,15 @@ def main():
             else :
                 if (psize & (blksize - 1)) == 0:
                     print("Programming block 0x%08X - " % psize, end = '')
-                if stm_comm.stm_usb.write (tmp, 5 * STM32_COMM.USB_WR_TIMEOUT) != pagesize:
+
+                usb_plen = 64
+                slen = 0
+                for idx in range (0, len(tmp), usb_plen):
+                    if stm_comm.stm_usb.write (tmp[idx:idx+usb_plen], 2 * STM32_COMM.USB_WR_TIMEOUT) != usb_plen:
+                        break
+                    slen += usb_plen
+
+                if  slen != pagesize:
                     raise SystemExit ("ERR: failed to send the data !")
 
                 if (psize & (blksize - 1)) == 0:
