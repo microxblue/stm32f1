@@ -34,10 +34,10 @@ char *strcat(char *dest, const char *src);
 int   strcmp(const char * cs,const char * ct);
 int   strncmp(const char * cs,const char * ct, int count);
 int   strlen(const char * s);
-#endif
-
 char  toupper(char ch);
 char  tolower(char ch);
+#endif
+
 char  getchar ();
 void  putchar (char c);
 char  haschar ();

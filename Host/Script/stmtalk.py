@@ -435,7 +435,7 @@ class STM32_COMM:
       1: {'blocksize':0x00000400, 'pagesize':0x00000040, 'base':0x08000000, 'limit':0x08020000, 'progcmd':"fp  "},  # IROM
       2: {'blocksize':0x00000100, 'pagesize':0x00000100, 'base':0x20000000, 'limit':0x20020000, 'progcmd':"dl 0"},  # SRAM
       3: {'blocksize':0x00010000, 'pagesize':0x00000100, 'base':0x00000000, 'limit':0x00800000, 'progcmd':"dl 1"},  # SPI FLASH
-      4: {'blocksize':0x00010000, 'pagesize':0x00010000, 'base':0x00000000, 'limit':0x01000000, 'progcmd':"dprg"},  # DEDIPROG
+      4: {'blocksize':0x00010000, 'pagesize':0x00010000, 'base':0x00000000, 'limit':0x02000000, 'progcmd':"dprg"},  # DEDIPROG
     }
 
     def __init__(self, devaddr='', product=0x1023):
@@ -509,9 +509,15 @@ class STM32_COMM:
 
     def get_status (self):
         if self.short_cmd (STM32_COMM.CMD_GET_STATUS, 0, 0, 0):
-            return 1
+            return bytearray()
         else:
-            return 0
+            time.sleep (.1)
+            tmp = self.stm_usb.read(STM32_USB_DEV.MAX_PKT, 1000)
+            if len(tmp)  ==  STM32_USB_DEV.MAX_PKT:
+                tmp = self.stm_usb.read(STM32_USB_DEV.MAX_PKT, 1000)
+                if len(tmp)  ==  STM32_USB_DEV.MAX_PKT:
+                    return bytearray(tmp[:4])
+        return bytearray()
 
     def send_done (self, param = 0):
         if self.short_cmd  (STM32_COMM.CMD_SEND_DONE, 0, param, 0) :
@@ -701,7 +707,7 @@ def main():
             address = address & ~(blksize - 1) & 0xffffffff
 
         if address < STM32_COMM.TARGET_CFGS[target]['base'] or address >= STM32_COMM.TARGET_CFGS[target]['limit'] :
-            raise SystemExit ("ERR: Base address is not within the %s range!\n", argv[3])
+            raise SystemExit ("ERR: Base address is not within the %s range!\n", sys.argv[3])
 
 
         if (address + size) < STM32_COMM.TARGET_CFGS[target]['base'] or (address + size) > STM32_COMM.TARGET_CFGS[target]['limit'] :
@@ -757,20 +763,21 @@ def main():
 
     time.sleep(.05)
 
+    # Switch address mode
+
+
     #
     # Check target status by sending a PING
     #
     if flags_eval (options, "r | e | p | c"):
         if target == STM32_COMM.TARGET_DEDIPROG:
-            if stm_comm.short_cmd  (STM32_COMM.CMD_GET_STATUS, 0, 0, 0) :
+            fid = stm_comm.get_status ()
+            if len(fid) != 4:
                 raise SystemExit ("ERR: failed to get status\n")
-
-            tmp = stm_comm.stm_usb.read(STM32_USB_DEV.MAX_PKT)
-            tmp = stm_comm.stm_usb.read(STM32_USB_DEV.MAX_PKT)
-            if len(tmp)  !=  STM32_USB_DEV.MAX_PKT:
-                raise SystemExit ("ERR: bulk read status failed !")
-            elif tmp[0] == 0xFF or (tmp[0] == 0x00 and tmp[1] == 0x00):
+            if (fid[0] == 0xFF) or (fid[3] != 0x55):
                 raise SystemExit ("ERR: target status is not ready, no flash detected !")
+            print ("Flash ID: %02X %02X %02X" % (fid[0], fid[1], fid[2]))
+            sys.stdout.flush()
 
     fpo = None
     if flags_eval (options, "r & o & ~b"):
@@ -832,6 +839,7 @@ def main():
 
             address += rlen
             tlen    -= rlen
+
 
         if 'b' in options:
             if idx + 1 == rlen:
@@ -915,7 +923,7 @@ def main():
                 if stm_comm.short_cmd  (STM32_COMM.CMD_ERASE_BLOCK, 0,  psize, 0) :
                     raise SystemExit ("ERR: failed to erase flash !")
 
-                if (target == STM32_COMM.TARGET_DEDIPROG) and stm_comm.get_status ():
+                if (target == STM32_COMM.TARGET_DEDIPROG) and (len(stm_comm.get_status ()) == 0):
                     raise SystemExit ("ERR: failed to wait for erasing done !")
 
                 print("DONE")
@@ -938,6 +946,7 @@ def main():
 
         psize = address
 
+        prog_blk = 0
         fpi  = open(sys.argv[1], 'rb')
         for loop in range ((size + pagesize - 1) // pagesize):
             tmp = fpi.read(pagesize)
@@ -956,6 +965,7 @@ def main():
             else :
                 if (psize & (blksize - 1)) == 0:
                     print("Programming block 0x%08X - " % psize, end = '')
+                    prog_blk += 1
 
                 usb_plen = 64
                 slen = 0
@@ -974,7 +984,7 @@ def main():
             sys.stdout.flush()
 
         fpi.close ()
-        print('')
+        print('%d out of %d blocks were programmed !' % (prog_blk, psize >> 16))
         sys.stdout.flush()
 
 
