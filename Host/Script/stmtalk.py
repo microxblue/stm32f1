@@ -389,16 +389,17 @@ class STM32_CON:
 
             if kb.kbhit():
                 keys = kb.getch()
-                if len(keys) == 1 and keys[0] == '\x1b':
+                if type(keys) is str:
+                    self.stm_usb.write(keys.encode())
+                else:
                     try:
                         self.stm_usb.write('\n')
                         self.stm_usb.read(STM32_USB_DEV.MAX_PKT)
                     except:
                         pass
                     break
-                else:
-                    self.stm_usb.write(keys.encode())
 
+        self.stm_usb.read(STM32_USB_DEV.MAX_PKT)
         sys.stdout.write('\n\n')
         sys.stdout.flush()
 
@@ -713,14 +714,8 @@ def main():
         if (address + size) < STM32_COMM.TARGET_CFGS[target]['base'] or (address + size) > STM32_COMM.TARGET_CFGS[target]['limit'] :
             raise SystemExit ("ERR: Length is too big to fit into the %s range!\n", sys.argv[3])
 
-    stm_comm = STM32_COMM (usbaddr, pid)
-    stm_comm.drain ()
 
-    # Check connection, ask to send back 0x80 bytes
-    result = stm_comm.check_result ()
-    if len(result) != STM32_USB_DEV.MAX_PKT:
-        raise SystemExit ("ERR: could not get status packet from target!")
-
+    stm_comm = None
     if (argc == 2) or (argc == 3):
         # @ : Do not display anything on USB console
         # ! : Display output on USB console
@@ -734,6 +729,8 @@ def main():
             else:
                 echo = True
 
+            stm_comm = STM32_COMM (usbaddr, pid)
+            stm_comm.drain ()
             if stm_comm.shell_cmd (sh_cmd):
                 raise SystemExit ("ERR: failed to send shell command !")
 
@@ -753,6 +750,15 @@ def main():
                 print ('\n'.join(outputs))
 
         return 0
+
+
+    stm_comm = STM32_COMM (usbaddr, pid)
+    stm_comm.drain ()
+
+    # Check connection, ask to send back 0x80 bytes
+    result = stm_comm.check_result ()
+    if len(result) != STM32_USB_DEV.MAX_PKT:
+        raise SystemExit ("ERR: could not get status packet from target!")
 
     if 't' in options :
         stm_comm.speed_test (0x100000, 2.0)

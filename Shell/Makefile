@@ -46,6 +46,7 @@ run:      USER_APP    = 0
 
 NAME=Shell
 OUTDIR=out
+BINDIR=bin
 LIBDIR=
 INCDIR= -I$(COMMON) -I$(COMMON)/Inc -I$(COMMON)/Lib/Cmsis -I$(COMMON)/Lib/Com -I$(COMMON)/Lib/Usb -I$(COMMON)/Lib/Sys -include Platform.h
 
@@ -154,13 +155,13 @@ $(LINKLD):  $(COMMON)/Template.ld Makefile
              out.writelines(lines)"
 
 both:
-	rm  bin/* -Rf
+	rm   bin/* -Rf
 	make clean
 	make recovery
-	copy out\shell.bin bin\shell1.bin
+	cp   out/shell.bin bin/shell1.bin
 	make clean
 	make normal
-	copy out\shell.bin bin\shell0.bin
+	cp   out/shell.bin bin/shell0.bin
 
 run: $(OUTDIR)/$(NAME).bin
 	$(STMTALK)  $< 0x20010000 sram p
@@ -180,7 +181,7 @@ burnall: $(OUTDIR)/$(NAME).bin
 	-$(STMTALK) bin/Shell1.bin  $(FLASH_BASE_R) IROM:$(USBADR) ep
 	-$(STMTALK) "-rt 0xAA" $(USBADR)
 	-ping 2.1.1.1 -n 1 -w 2000 >NUL
-	$(STMTALK)  bin/Shell0.bin  0x08000000 IROM:$(USBADR) ep
+	-$(STMTALK)  bin/Shell0.bin  0x08000000 IROM:$(USBADR) ep
 	-$(STMTALK) "-rt" $(USBADR)
 
 burnn:
@@ -191,7 +192,10 @@ burnr:
 
 prebuild:
 	@[ -d $(OUTDIR) ] || mkdir $(OUTDIR)
-	@[ -d bin ] || mkdir bin
+	@[ -d $(BINDIR) ] || mkdir $(BINDIR)
 
 clean:
 	@rm -Rf $(OUTDIR)
+
+distclean:
+	@rm -Rf $(OUTDIR) $(BINDIR)
