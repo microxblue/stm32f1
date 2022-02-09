@@ -10,7 +10,7 @@ OBJDUMP  = $(PREFIX)objdump
 ELFSIZE  = $(PREFIX)size
 LINKLD   = $(OUTDIR)/link.ld
 COMMON   = .
-STMTALK  = python ../Host/Script/stmtalk.py
+STMTALK  = python ../Tools/stmtalk.py
 
 # .!:0x0918  .@:0x925  .:0x1023
 USBADR      ?= .

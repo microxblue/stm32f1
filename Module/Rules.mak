@@ -10,7 +10,7 @@ OBJDUMP  = $(PREFIX)objdump
 ELFSIZE  = $(PREFIX)size
 LINKLD   = $(OUTDIR)/Module.ld
 SHELLDIR = ../Shell
-STMTALK  = python ../Host/Script/stmtalk.py
+STMTALK  = python ../Tools/stmtalk.py
 MODSPI   = 0x00700000
 
 LIBDIR=
@@ -74,7 +74,7 @@ $(OUTDIR)/%.o : %.c
 	$(CC) $(CPFLAGS) $(CPPFLAGS) -c $< -o $@
 
 
-run: prebuild $(OUTDIR)/$(MOD).bin
+run: $(OUTDIR)/$(MOD).bin
 	$(STMTALK) $< $(SRAMBASE) sram:$(ADR) p
 ifeq ($(SRAMBASE),0x20001000)
 	$(STMTALK) "@sm $(MODID) $(MODCMD)" $(ADR)
