@@ -10,6 +10,25 @@
 
 #include "stm32f10x_flash.c"
 
+#define  MCU_TYPE_STM32F103  0
+
+void SendStatusResp ()
+{
+  BYTE  *buf;
+
+  // Request a echo packet back
+  do {
+    buf = UsbGetTxBuf(EP_MAX_SIZE);
+  } while (!buf);
+  // fill data to buffer
+  memset (buf, 0, EP_MAX_SIZE);
+  *(DWORD *)buf = 0x53545343; // CSTS
+  buf[4] = EP_MAX_SIZE;
+  buf[7] = MCU_TYPE_STM32F103;
+  memcpy (buf + 16, gCommonApi->status, 8);
+  UsbAddTxBuf (EP_MAX_SIZE);
+}
+
 void FlashProg()
 {
   DWORD  addr;
@@ -96,14 +115,18 @@ void FlashProg()
               do {
                 txbuf = UsbGetTxBuf(EP_MAX_SIZE);
               } while (!txbuf);
-              if (txbuf) {
-                dat = EP_MAX_SIZE;
-                for (dat = 0; dat < EP_MAX_SIZE; dat++)
-                  *txbuf++ = *(BYTE *)(addr+dat);
-                UsbAddTxBuf (EP_MAX_SIZE);
-              }
+              dat = EP_MAX_SIZE;
+              for (dat = 0; dat < EP_MAX_SIZE; dat++)
+                *txbuf++ = *(BYTE *)(addr+dat);
+              UsbAddTxBuf (EP_MAX_SIZE);
             }
             printf ("DONE\n");
+
+        } else if (buf[1] == (BYTE)'H') {
+          if (buf[3]) {
+            SendStatusResp ();
+          }
+
         } else if (buf[1] == (BYTE)'D' ) { // Sent done
           plen = 0xF0;
         }

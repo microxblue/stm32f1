@@ -20,6 +20,7 @@ BYTE           gModFunc;
 
 extern   void SysInit ();
 extern   void FlashProg();
+extern   void SendStatusResp ();
 
 void Test()
 {
@@ -223,16 +224,7 @@ BYTE GetUsbCommand(char *cmdline)
       if (buf[1] == 'H') {
         if (buf[3]) {
           // Request a echo packet back
-          len = 0x40;
-          buf = UsbGetTxBuf(len);
-          if (buf) {
-            // fill data to buffer
-            memset (buf, 0, len);
-            *(DWORD *)buf = 0x53545343; // CSTS
-            buf[4] = len;
-            memcpy (buf + 16, gCommonApi->status, 8);
-            UsbAddTxBuf (len);
-          }
+          SendStatusResp ();
         }
       }
       result = 0;
@@ -549,7 +541,7 @@ void PrintBanner ()
           "P"
 #endif
           PACKAGE_PINS ")  *\n"
-          "*     Strong Shell  V1.10     *\n"
+          "*     Strong Shell  V1.12     *\n"
           "*         Micro  Blue         *\n"
           "*******************************\n"
           "\n\n>");
