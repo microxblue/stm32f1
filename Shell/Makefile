@@ -158,10 +158,10 @@ both:
 	rm   bin/* -Rf
 	make clean
 	make recovery
-	cp   out/shell.bin bin/shell1.bin
+	cp   out/$(NAME).bin bin/$(NAME)1.bin
 	make clean
 	make normal
-	cp   out/shell.bin bin/shell0.bin
+	cp   out/$(NAME).bin bin/$(NAME)0.bin
 
 run: $(OUTDIR)/$(NAME).bin
 	$(STMTALK)  $< 0x20010000 sram p
@@ -185,10 +185,10 @@ burnall: $(OUTDIR)/$(NAME).bin
 	-$(STMTALK) "-rt" $(USBADR)
 
 burnn:
-	$(STMTALK) bin/Shell0.bin  0x08000000 IROM:$(USBADR) ep
+	$(STMTALK) bin/$(NAME)0.bin  0x08000000 IROM:$(USBADR) ep
 
 burnr:
-	$(STMTALK) bin/Shell1.bin  $(FLASH_BASE_R) IROM:$(USBADR) ep
+	$(STMTALK) bin/$(NAME)1.bin  $(FLASH_BASE_R) IROM:$(USBADR) ep
 
 prebuild:
 	@[ -d $(OUTDIR) ] || mkdir $(OUTDIR)
