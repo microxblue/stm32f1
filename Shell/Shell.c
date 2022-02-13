@@ -155,6 +155,10 @@ void UsbDownload ()
             }
             SpiSetCs (1);
             printf ("DONE\n");
+        } else if (buf[1] == (BYTE)'H') {
+          if (buf[3]) {
+            SendStatusResp ();
+          }
         } else if (buf[1] == (BYTE)'D' ) { // Sent done
           plen = 0xF0;
         }

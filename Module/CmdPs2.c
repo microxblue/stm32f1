@@ -276,7 +276,6 @@ void Ps2Recv ()
           LED_B_ON;
           if (DatPtr[1] != 0x41) {
             ModeState = 0;
-            printf ("#\n");
           } else {
             if (memcmp (DatBuf[ActIdx], DatBuf[1 - ActIdx], 9) != 0) {
               for (Idx = 0; Idx < 9; Idx++) {

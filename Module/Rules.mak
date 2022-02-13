@@ -13,6 +13,9 @@ SHELLDIR = ../Shell
 STMTALK  = python ../Tools/stmtalk.py
 MODSPI   = 0x00700000
 
+
+MODNAME ?= CmdTest
+
 LIBDIR=
 INCDIR=-I. -I$(SHELLDIR)/Inc -I$(SHELLDIR)/Lib/Cmsis -I$(SHELLDIR)/Lib/Com -I$(SHELLDIR)/Lib/Usb -I$(SHELLDIR)/Lib/Sys -I$(SHELLDIR)
 
@@ -24,7 +27,7 @@ OPT_FLG  = -O2 -fomit-frame-pointer
 ASFLAGS  = $(CPU_FLG)
 CPFLAGS  = $(CPU_FLG) $(OPT_FLG) $(FPU_FLG) $(INCDIR) -ffreestanding -fno-builtin -Wall -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -DMODID=$(MODID)
 LDFLAGS  = -nostartfiles
-ifeq ($(MOD),CmdFloat)
+ifeq ($(MODNAME),CmdFloat)
   LDFLAGS += -lgcc -lm
 else
   CPFLAGS += -nodefaultlibs
@@ -32,16 +35,16 @@ endif
 
 .PRECIOUS: $(OUTDIR)/%.o
 
-SOURCES := $(wildcard $(MOD)/*.c)
-OBJECTS := $(patsubst $(MOD)/%.c, $(OUTDIR)/%.o, $(SOURCES))
-OBJECTS += $(OUTDIR)/$(MOD).o
+SOURCES := $(wildcard $(MODNAME)/*.c)
+OBJECTS := $(patsubst $(MODNAME)/%.c, $(OUTDIR)/%.o, $(SOURCES))
+OBJECTS += $(OUTDIR)/$(MODNAME).o
 
 $(OUTDIR)/%.bin: $(OUTDIR)/%.elf
 	$(OBJDUMP) -h -S -C -r $< > $(basename $@).s
 	$(OBJCOPY) -O ihex   $< $(basename $@).hex
 	$(OBJCOPY) -O binary $< $@
 	$(ELFSIZE) $<
-ifneq ($(MOD),CmdFloat)
+ifneq ($(MODNAME),CmdFloat)
 ifeq  ($(CODE_REGION),FLASH)
 	@echo Adding Flash Module Marker
 	@python -c "fd=open('$(@)', 'rb');bin=bytearray(fd.read());fd.close(); \
@@ -66,7 +69,7 @@ $(OUTDIR)/Module.ld: Template.ld
              out.writelines(lines)"
 
 
-$(OUTDIR)/%.o : $(MOD)/%.c
+$(OUTDIR)/%.o : $(MODNAME)/%.c
 	$(CC) $(CPFLAGS) $(CPPFLAGS) -c $< -o $@
 
 
@@ -74,7 +77,7 @@ $(OUTDIR)/%.o : %.c
 	$(CC) $(CPFLAGS) $(CPPFLAGS) -c $< -o $@
 
 
-run: $(OUTDIR)/$(MOD).bin
+run: $(OUTDIR)/$(MODNAME).bin
 	$(STMTALK) $< $(SRAMBASE) sram:$(ADR) p
 ifeq ($(SRAMBASE),0x20001000)
 	$(STMTALK) "@sm $(MODID) $(MODCMD)" $(ADR)
@@ -83,19 +86,16 @@ else
 	$(STMTALK) "-go $(SRAMENTRY)"
 endif
 
-burn: $(OUTDIR)/$(MOD).bin
-	$(STMTALK) $< $(shell python -c "addr=$(MODSPI) + 0x10000 * $($(MOD)); print (hex(addr))") flash:$(ADR) pm
+burn: $(OUTDIR)/$(MODNAME).bin
+	$(STMTALK) $< $(shell python -c "addr=$(MODSPI) + 0x10000 * $($(MODNAME)); print (hex(addr))") flash:$(ADR) pm
 
-user: $(OUTDIR)/$(MOD).bin
+user: $(OUTDIR)/$(MODNAME).bin
 	$(STMTALK) $< $(FLASH_BASE) IROM:$(ADR) pe
 
 erase:
 	$(STMTALK) Dummy.bin $(MODSPI):0x00100000 flash:$(ADR) e
 
 prebuild:
-ifndef MOD
-	$(error MOD is not set, please add MOD=Cmdxxxx in make command line)
-endif
 	@[ -d $(OUTDIR) ] || mkdir $(OUTDIR)
 	@rm -Rf $(OUTDIR)\Module.ld
 

@@ -9,10 +9,10 @@ MODID          ?= 8
 MODCMD         ?= 0xF0
 CMDARG         ?= 0
 
-ifeq ($(MOD),CmdFloat)
+ifeq ($(MODNAME),CmdFloat)
 	FLASH_BASE      = 0x0801E000
 	FLASH_SIZE      = 0x00002000
-else ifeq ($(MOD),CmdTof1)
+else ifeq ($(MODNAME),CmdTof1)
 	FLASH_BASE      = 0x08010000
 	FLASH_SIZE      = 0x00008000
 ifeq ($(CODE_REGION),RAM)
@@ -27,6 +27,6 @@ endif
 
 all: prebuild mod
 
-mod: $(OUTDIR)/$(MOD).bin
+mod: $(OUTDIR)/$(MODNAME).bin
 
 include  Rules.mak
