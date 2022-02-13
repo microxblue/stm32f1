@@ -8,6 +8,7 @@ CODE_REGION    ?= RAM
 MODID          ?= 8
 MODCMD         ?= 0xF0
 CMDARG         ?= 0
+MODNAME        ?= CmdTest
 
 ifeq ($(MODNAME),CmdFloat)
 	FLASH_BASE      = 0x0801E000

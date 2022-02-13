@@ -93,14 +93,6 @@ void SysTickInit(void)
 
 void Main ()
 {
-  char      ch;
-  BYTE     *buf;
-  BYTE      loop;
-  BYTE      plen;
-  WORD      rxlen;
-
-  TICK_MARKER  Marker = {0};
-
   SysTickInit ();
 
   printf ("Quit\n");

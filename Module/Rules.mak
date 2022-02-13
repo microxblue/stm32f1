@@ -13,9 +13,6 @@ SHELLDIR = ../Shell
 STMTALK  = python ../Tools/stmtalk.py
 MODSPI   = 0x00700000
 
-
-MODNAME ?= CmdTest
-
 LIBDIR=
 INCDIR=-I. -I$(SHELLDIR)/Inc -I$(SHELLDIR)/Lib/Cmsis -I$(SHELLDIR)/Lib/Com -I$(SHELLDIR)/Lib/Usb -I$(SHELLDIR)/Lib/Sys -I$(SHELLDIR)
 

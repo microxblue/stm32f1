@@ -3,7 +3,7 @@
 
 #define __MODULE__
 
-#include "..\Shell\ModuleApi.h"
+#include "ModuleApi.h"
 
 #define  ZeroBss() { \
     extern unsigned int __bss_start__, __bss_end__; \

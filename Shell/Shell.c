@@ -139,7 +139,7 @@ void UsbDownload ()
             SpiReadCmdExt(*(DWORD *)(buf + 4));
             for (addr = 0; addr < *(DWORD *)(buf + 8); addr += 64) {
               do {
-                txbuf = UsbGetTxBuf(64);
+                txbuf = UsbGetTxBuf(EP_MAX_SIZE);
               } while (!txbuf);
               if (txbuf) {
                 dat = 64;
@@ -150,7 +150,7 @@ void UsbDownload ()
                   for (dat = 0; dat < 64; dat++)
                     *txbuf++ = *(BYTE *)(addr+dat);
                 }
-                UsbAddTxBuf (64);
+                UsbAddTxBuf (EP_MAX_SIZE);
               }
             }
             SpiSetCs (1);
@@ -161,6 +161,15 @@ void UsbDownload ()
           }
         } else if (buf[1] == (BYTE)'D' ) { // Sent done
           plen = 0xF0;
+        }
+      }
+    } else {
+      if (mode == 3) {
+        // Read perf test
+        txbuf = UsbGetTxBuf(EP_MAX_SIZE);
+        if (txbuf) {
+          memset (txbuf, 0xaa, EP_MAX_SIZE);
+          UsbAddTxBuf (EP_MAX_SIZE);
         }
       }
     }
